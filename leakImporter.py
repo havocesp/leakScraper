@@ -166,55 +166,55 @@ def main():
 
     filename = sys.argv[2]
     leakName = sys.argv[1]
-    upload = open(filename, "rb")
-    nbThreads = 1
-    not_imported_file = open(filename + "_not_imported.txt", "w")
-    not_imported_lock = threading.Lock()
-    not_imported = (not_imported_file, not_imported_lock)
-    print("##################################")
-    print("Import requested for file " + filename)
-    if upload and leakName != "":
-        filetype = magic.from_buffer(upload.read(1024)).lower()
-        upload.seek(0)
-        validTypes = ["ascii", "utf-8", "text"]
-        isreadable = True in [v in filetype for v in validTypes]
-        if isreadable:
-            print("Counting lines ...")
-            total_lines = count_lines(filename)
-            client = MongoClient()
-            db = client[mongo_database]
-            leaks = db["leaks"]
-            nbLeaks = leaks.find({"name":leakName}).count()
-            if nbLeaks == 0:
-                newid = leaks.find()
-                try:
-                    newid = max([x["id"] for x in newid]) + 1
-                except ValueError:
-                    newid = 1
-                leaks.insert_one({"name":leakName,"filename":os.path.basename(filename), "imported":0, "id":newid})
-                leak_id = newid
-            else:
-                leak_id = leaks.find_one({"name":leakName})["id"]
-            nb_parsed = {}
-            nb_err = {}
-            nb_mail_providers = {}
-            e = threading.Event()
-            threads = [threading.Thread(target=importer, args=(filename, x, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e, mail_providers, nb_mail_providers)) for x in range(1, nbThreads + 1)]
-            statsT = threading.Thread(target=stats, args=(nb_parsed, total_lines, leak_id, nb_err, e, nb_mail_providers))
-            print("Processing started ...")
-            t0 = time.time()
-            for t in threads:
-                nb_parsed[t._args[1]] = 0
-                nb_err[t._args[1]] = 0
-                nb_mail_providers["nb_mail_providers"] = 0
-                t.start()
-            statsT.start()
-            for t in threads:
-                t.join()
-            t1 = time.time()
-            statsT.join()
-            print()
-            print("Import finished in", round(t1 - t0, 4), "secs")
+    with open(filename, "rb") as upload:
+        nbThreads = 1
+        not_imported_file = open(filename + "_not_imported.txt", "w")
+        not_imported_lock = threading.Lock()
+        not_imported = (not_imported_file, not_imported_lock)
+        print("##################################")
+        print("Import requested for file " + filename)
+        if upload and leakName != "":
+            filetype = magic.from_buffer(upload.read(1024)).lower()
+            upload.seek(0)
+            validTypes = ["ascii", "utf-8", "text"]
+            isreadable = True in [v in filetype for v in validTypes]
+            if isreadable:
+                print("Counting lines ...")
+                total_lines = count_lines(filename)
+                client = MongoClient()
+                db = client[mongo_database]
+                leaks = db["leaks"]
+                nbLeaks = leaks.find({"name":leakName}).count()
+                if nbLeaks == 0:
+                    newid = leaks.find()
+                    try:
+                        newid = max([x["id"] for x in newid]) + 1
+                    except ValueError:
+                        newid = 1
+                    leaks.insert_one({"name":leakName,"filename":os.path.basename(filename), "imported":0, "id":newid})
+                    leak_id = newid
+                else:
+                    leak_id = leaks.find_one({"name":leakName})["id"]
+                nb_parsed = {}
+                nb_err = {}
+                nb_mail_providers = {}
+                e = threading.Event()
+                threads = [threading.Thread(target=importer, args=(filename, x, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e, mail_providers, nb_mail_providers)) for x in range(1, nbThreads + 1)]
+                statsT = threading.Thread(target=stats, args=(nb_parsed, total_lines, leak_id, nb_err, e, nb_mail_providers))
+                print("Processing started ...")
+                t0 = time.time()
+                for t in threads:
+                    nb_parsed[t._args[1]] = 0
+                    nb_err[t._args[1]] = 0
+                    nb_mail_providers["nb_mail_providers"] = 0
+                    t.start()
+                statsT.start()
+                for t in threads:
+                    t.join()
+                t1 = time.time()
+                statsT.join()
+                print()
+                print("Import finished in", round(t1 - t0, 4), "secs")
     not_imported[0].close()
 
 
