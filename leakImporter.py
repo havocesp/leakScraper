@@ -188,7 +188,7 @@ def main():
             if nbLeaks == 0:
                 newid = leaks.find()
                 try:
-                    newid = max([x["id"] for x in newid]) + 1
+                    newid = max(x["id"] for x in newid) + 1
                 except ValueError:
                     newid = 1
                 leaks.insert_one({"name":leakName,"filename":os.path.basename(filename), "imported":0, "id":newid})
