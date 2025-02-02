@@ -9,6 +9,7 @@ import uuid
 import sys
 import os
 import re
+from security import safe_command
 
 '''
    __            _     _____                            _
@@ -99,7 +100,7 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
             nb_err[n] = errs
     fd2.close()
     cmd = ["mongoimport","-d",mongo_database,"-c","credentials","--type","csv","--file",filename,"--fields","l,p,d,h,P", "--numInsertionWorkers","8"]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = safe_command.run(subprocess.Popen, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc.wait()
     e.set()
     os.remove(filename)
